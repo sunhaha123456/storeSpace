@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>仓库管理平台</title>
+    <link rel="icon" th:href="@{/static/img/favicon.ico}" type="image/x-icon"/>
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport" />
+    <!-- Bootstrap 3.3.7 -->
+    <link rel="stylesheet" th:href="@{/static/home/bower_components/bootstrap/bootstrap.min.css}"></link>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" th:href="@{/static/home/bower_components/font-awesome/css/font-awesome.min.css}"></link>
+    <!-- Theme style -->
+    <link rel="stylesheet" th:href="@{/static/home/dist/css/AdminLTE.min.css}"></link>
+    <!-- AdminLTE Skins. Choose a skin from the css/skins folder instead of downloading all of them to reduce the load. -->
+    <link rel="stylesheet" th:href="@{/static/home/dist/css/skins/_all-skins.min.css}"></link>
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="/planning/static/home/html5shiv.js"></script>
+    <script src="/planning/static/home/respond.js"></script>
+    <![endif]-->
+
+    <!-- Google Font -->
+    <link rel="stylesheet" th:href="@{/static/home/googleFont.css}"></link>
+    <script th:inline="javascript">
+        var contextPath = [[@{/}]];
+        var interceptorToken = [[${token}]];
+        var interceptorUserId = [[${userId}]];
+    </script>
+    <script th:src="@{/static/myFun.js}"></script>
+</head>
+<body class="hold-transition skin-blue sidebar-mini" style="overflow:hidden;">
+<div class="wrapper">
+
+    <header class="main-header">
+        <!-- Logo -->
+        <a class="logo" id="logo">
+            <!-- mini logo for sidebar mini 50x50 pixels -->
+            <span class="logo-mini"><b>管理</b></span>
+            <!-- logo for regular state and mobile devices -->
+            <span class="logo-lg"><b>仓库管理平台</b></span>
+        </a>
+        <!-- Header Navbar: style can be found in header.less -->
+        <nav class="navbar navbar-static-top">
+            <!-- Sidebar toggle button-->
+            <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button" onclick="toggleClick()">
+                <span class="sr-only">Toggle navigation</span>
+            </a>
+
+            <div class="navbar-custom-menu">
+                <ul class="nav navbar-nav">
+                    <li class="dropdown user user-menu">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                            <span class="hidden-xs">用户：<span id="unameHomeSpan"/></span>
+                        </a>
+                    </li>
+                    <li class="dropdown user user-menu">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                            <span class="hidden-xs" onclick="editUserPasswordShow()">修改密码</span>
+                        </a>
+                    </li>
+                    <li class="dropdown user user-menu">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                            <span class="hidden-xs" onclick="loginOut()">退出登录</span>
+                        </a>
+                    </li>
+                    <li class="dropdown user user-menu">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                            <span class="hidden-xs"></span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+    <!-- Left side column. contains the logo and sidebar -->
+    <aside class="main-sidebar">
+        <!-- sidebar: style can be found in sidebar.less -->
+        <section class="sidebar">
+            <!-- sidebar menu: : style can be found in sidebar.less -->
+            <ul class="sidebar-menu" data-widget="tree" id="menuMain">
+
+            </ul>
+        </section>
+        <!-- /.sidebar -->
+    </aside>
+
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper" id="contentMain">
+        <!-- Content Header (Page header) -->
+        <section class="content-header" id="navHeader">
+        </section>
+
+        <!-- Main content -->
+        <iframe name="contentIframe" frameborder="0" style="width:100%; padding-top: 5px;" id="contentIframe">
+
+        </iframe>
+        <!-- /.content -->
+    </div>
+</div>
+<!-- ./wrapper -->
+
+<!-- jQuery 3 -->
+<script th:src="@{/static/home/bower_components/jquery/dist/jquery.min.js}"></script>
+<script th:inline="javascript">
+    $.widget.bridge('uibutton', $.ui.button);
+</script>
+<!-- Bootstrap 3.3.7 -->
+<script th:src="@{/static/home/bower_components/bootstrap/bootstrap.min.js}"></script>
+<!-- AdminLTE App -->
+<script th:src="@{/static/home/dist/js/adminlte.min.js}"></script>
+
+<script th:src="@{/static/easyui/easy.common.js}"></script>
+<link rel="stylesheet" th:href="@{/static/easyui/themes/easy.common.css}"></link>
+<style th:inline="text">
+    .l-btn-text {
+        color: #3d3d3d;
+    }
+</style>
+<form id="manager_editUserPassword" class="easyui-dialog" style="margin:0;padding:5px 0 0 25px;color:#333;"
+      data-options="top:150,width:320,title:'编辑管理',modal:true,closed:true,cache:false,iconCls:'icon-user-add',
+       onClose:function () {
+            $('#manager_editUserPassword').form('reset');
+       },
+		buttons:[{
+					text : '提交',
+					iconCls : 'icon-add-green',
+					handler : function () {
+                    editUserPasswordCommit();
+					}
+				},{
+					text:'关闭',
+					iconCls : 'icon-redo',
+					handler:function(){
+                    $('#manager_editUserPassword').dialog('close');
+					}
+				}]">
+    <p>旧密码：<input class="easyui-validatebox" type="text" id="userOldPassword" style="width:200px;" /></p>
+    <p>新密码：<input class="easyui-validatebox" type="text" id="userNewPassword" style="width:200px;" /></p>
+</form>
+</body>
+<script th:inline="javascript">
+    var menuParent;
+    var menuParentId;
+    var menuChild ;
+    var menuChildId;
+    var treeMenu;
+    var treeMenuId;
+    var contentMain = $('#contentMain');
+    var navHeader = $('#navHeader');
+    var iframeHightConst = 35;
+    function menuClick(menuParentName, menuChildName, menuParentId, menuChildId, treeMenuId){
+        var nav = menuParentName + "  > " + menuChildName;
+        $("#navHeader").html(nav);
+
+        menuParent = $('#' + menuParentId);
+        menuChild = $('#' + menuChildId);
+        treeMenu = $('#' + treeMenuId);
+        $("li[name='menuLiParent']").each(function(i, item){
+            var jitem = $(item);
+            if (jitem.hasClass('active') && !jitem.is(menuParent)){
+                jitem.removeClass("active");
+            }
+            if (!menuParent.hasClass('active')){
+                menuParent.addClass("active");
+            }
+            if (jitem.hasClass('menu-open') && !jitem.is(menuParent)){
+                jitem.removeClass("menu-open");
+            }
+            if (!menuParent.hasClass('menu-open')){
+                menuParent.addClass("menu-open");
+            }
+        });
+        $("li[name='menuLiChild']").each(function(i, item){
+            var jitem = $(item);
+            if (jitem.hasClass('active') && !jitem.is(menuChild)){
+                jitem.removeClass("active");
+            }
+            if (!menuChild.hasClass('active')){
+                menuChild.addClass("active");
+            }
+        });
+        $('#contentIframe').height(contentMain.height() - navHeader.height() - iframeHightConst);
+    }
+    var showFlag = true;
+    function toggleClick() {
+        if (showFlag) {
+            showFlag = false;
+        } else {
+            showFlag = true;
+            $("ul[name='treeViewMenu']").each(function(i, item){
+                var jitem = $(item);
+                jitem.hide();
+            });
+            treeMenu.show();
+        }
+    }
+    function loginOut() {
+        window.location.href = urlHandleContext("login/out");
+    }
+    var signIndex = 0;
+    function getUniqueSign() {
+        signIndex = signIndex + 1;
+        return "menu_" + signIndex;
+    }
+    function editUserPasswordShow() {
+        $('#manager_editUserPassword').dialog('open');
+    }
+    function editUserPasswordCommit() {
+        var userOldPassword = $('#userOldPassword').val();
+        var userNewPassword = $('#userNewPassword').val();
+        var result = ajaxSynchPostJson("user/userManage/updatePasswodSelf?userOldPassword=" + userOldPassword + "&userNewPassword=" + userNewPassword, null);
+        if (result.code == '200') {
+            alertSuccess();
+            $('#manager_editUserPassword').dialog('close');
+        } else {
+            alertWarn(result.msg);
+        }
+    }
+    $(function () {
+        $('#logo').attr('href', urlHandleContext("login/toSuccess"));
+        //nav初始化
+        var res = ajaxSynchPostJson("user/menuManage/getUserMenu", null);
+        if (res.code == "200") {
+            var parentMenuArr = res.data;
+            var menuMainHtml = '';
+            var navHeaderHtml = '';
+            parentMenuArr.forEach(function(parentMenu, i){
+                var parentMenuId = getUniqueSign();
+                var parentMenuName = parentMenu.menuName;
+                var parentMenuIcon = parentMenu.iconCls;
+                var treeViewId = getUniqueSign();
+                if (i == 0) {
+                    menuParentId = '#' + parentMenuId;
+                    treeMenuId = '#' + treeViewId;
+                    navHeaderHtml = parentMenuName + "  > ";
+                    menuMainHtml = menuMainHtml + "<li class='active treeview menu-open' name='menuLiParent' id='" + parentMenuId + "'>";
+                } else {
+                    menuMainHtml = menuMainHtml + "<li class='treeview' name='menuLiParent' id='" + parentMenuId + "'>";
+                }
+                menuMainHtml = menuMainHtml + "<a href='#'>";
+                menuMainHtml = menuMainHtml + "<i class='fa " + parentMenuIcon + "'></i>";
+                menuMainHtml = menuMainHtml + "<span>" + parentMenuName + "</span>";
+                menuMainHtml = menuMainHtml + "<span class='pull-right-container'><i class='fa fa-angle-left pull-right'></i></span>";
+                menuMainHtml = menuMainHtml + "</a>";
+                menuMainHtml = menuMainHtml + "<ul class='treeview-menu' id='" + treeViewId + "' name='treeViewMenu'>";
+                var childMenuArr = parentMenu.children;
+                childMenuArr.forEach(function(childMenu, j){
+                    var childMenuId = getUniqueSign();
+                    var childMenuName = childMenu.menuName;
+                    var childMenuIcon = childMenu.iconCls;
+                    var childMenuUrl = childMenu.url;
+                    var href = urlHandleContext(childMenuUrl);
+                    var onclickHtml = "menuClick('" + parentMenuName + "', '" + childMenuName + "', '" + parentMenuId + "', '" + childMenuId + "', '" + treeViewId + "')";
+                    if (i == 0 && j == 0) {
+                        menuChildId = '#' + childMenuId;
+                        $('#contentIframe').attr('src', href);
+                        navHeaderHtml = navHeaderHtml + childMenuName;
+                        menuMainHtml = menuMainHtml + "<li class='active' name='menuLiChild' id='" + childMenuId + "'><a href='" + href + "' target='contentIframe' onclick=\"" + onclickHtml + "\">&nbsp;&nbsp;&nbsp;&nbsp;<i class='fa " + childMenuIcon + "'></i>" + childMenuName + "</a></li>";
+                    } else {
+                        menuMainHtml = menuMainHtml + "<li name='menuLiChild' id='" + childMenuId + "'><a href='" + href + "' target='contentIframe' onclick=\"" + onclickHtml + "\">&nbsp;&nbsp;&nbsp;&nbsp;<i class='fa " + childMenuIcon + "'></i>" + childMenuName + "</a></li>";
+                    }
+                });
+                menuMainHtml = menuMainHtml + "</ul>";
+                menuMainHtml = menuMainHtml + "</li>";
+            });
+            $("#menuMain").html(menuMainHtml);
+            $("#navHeader").html(navHeaderHtml);
+            $('#contentIframe').height(contentMain.height() - navHeader.height() - iframeHightConst - 35);
+            $("#unameHomeSpan").html([[${uname}]]);
+            var menuParent = $(menuParentId);
+            var menuChild = $(menuChild);
+            var treeMenu = $(treeMenuId);;
+        }
+    });
+</script>
+</html>

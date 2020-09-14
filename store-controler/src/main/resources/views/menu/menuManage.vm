@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" th:href="@{/static/easyui/themes/easy.common.css}"></link>
+    <script th:inline="javascript">
+        var contextPath = [[@{/}]];
+        var interceptorToken = [[${token}]];
+        var interceptorUserId = [[${userId}]];
+    </script>
+    <script th:src="@{/static/easyui/easy.common.js}"></script>
+    <script th:src="@{/static/easyuiMask.js}"></script>
+    <script th:src="@{/static/myFun.js}"></script>
+    <script th:inline="javascript">
+        function addMenuParentShow() {
+            $('#manager_add').dialog('open');
+            $('#roleNameAdd').focus();
+        }
+        function editMenuParentShow() {
+            var rows = $('#manager').datagrid('getSelections');
+            if (rows.length > 0) {
+                var id = rows[0].id;
+                var result = ajaxSynchGet("user/menuManage/getDetail", {"id": id});
+                if (result.code == '200') {
+                    var menuName = result.data.menuName;
+                    var iconCls = result.data.iconCls;
+                    var sort = result.data.sort;
+                    var menuState = result.data.menuState;
+                    $('#menuNameParentEdit').val(menuName);
+                    $('#menuIconParentEdit').val(iconCls);
+                    $('#menuSortParentEdit').numberbox('setValue', sort);
+                    $("input:radio[name=menuStateParentEdit][value=" + menuState + "]").attr("checked",true);
+                    $('#manager_edit').dialog('open');
+                } else {
+                    alertWarn(result.msg);
+                }
+            } else {
+                alertWarn("请先选择记录！");
+            }
+        }
+        function listChild() {
+            var rows = $('#manager').datagrid('getSelections');
+            if (rows.length > 0) {
+                var id = rows[0].id;
+                var result = ajaxSynchGet("user/menuManage/getChild", {"id": id});
+                if (result.code == '200') {
+                    $('#manager_listChild_datagrid').datagrid('loadData', result.data);
+                    $('#manager_listChild').dialog('open');
+                } else {
+                    alertWarn(result.msg);
+                }
+            } else {
+                alertWarn("请先选择记录！");
+            }
+        }
+        function addMenuParentCommit() {
+            if ($('#manager_add').form('validate')) {
+                var menuName = $('#menuNameParentAdd').val();
+                var iconCls = $('#menuIconParentAdd').val();
+                var menuState = $("input[name='menuStateParentAdd']:checked").val();
+                var sort = $('#menuSortParentAdd').val();
+                var dirLevel = 1;
+                var parentId = 0;
+                var url = null;
+                var id = null;
+                var manager = '#manager_add';
+                var isParent = 1;
+                save(menuName, iconCls, menuState, sort, dirLevel, parentId, null, id, manager, isParent);
+            }
+        }
+        function editMenuParentCommit() {
+            if ($('#manager_edit').form('validate')) {
+                var rows = $('#manager').datagrid('getSelections');
+                if (rows.length > 0) {
+                    var menuName = $('#menuNameParentEdit').val();
+                    var iconCls = $('#menuIconParentEdit').val();
+                    var menuState = $("input[name='menuStateParentEdit']:checked").val();
+                    var sort = $('#menuSortParentEdit').val();
+                    var dirLevel = 1;
+                    var parentId = 0;
+                    var url = null;
+                    var id = rows[0].id;
+                    var manager = '#manager_edit';
+                    var isParent = 1;
+                    save(menuName, iconCls, menuState, sort, dirLevel, parentId, null, id, manager, isParent);
+                }
+            }
+        }
+        function save(menuName, iconCls, menuState, sort, dirLevel, parentId, url, id, manager, isParent) {
+            var params = {"menuName":menuName, "iconCls":iconCls, "menuState":menuState, "sort":sort,"dirLevel":dirLevel,"parentId":parentId,"url":url,"id":id};
+            var result = ajaxSynchPostJson("user/menuManage/save", params);
+            if (result.code == '200') {
+                if (isParent == 1) {
+                    searchMenu();
+                } else {
+                    listChild();
+                }
+                $('#manager_add').dialog('close');
+                $('#manager_edit').dialog('close');
+                $('#manager_listChild_add').dialog('close');
+                $('#manager_listChild_edit').dialog('close');
+                alertSuccess();
+            } else {
+                alertWarn(result.msg);
+            }
+        }
+        function searchMenu() {
+            var params = {"page":1, "rows":10};
+            var result = ajaxSynchPostJson("user/menuManage/searchRoot", params);
+            if (result.code == '200') {
+                dataGridPageInit();
+                $('#manager').datagrid('loadData', result.data);
+            } else {
+                alertWarn(result.msg);
+            }
+        }
+        function dataGridInit() {
+            $('#manager').datagrid({
+                //fit : true,
+                fitColumns : true,
+                striped : true,
+                rownumbers : true,
+                border : false,
+                pagination : true,
+                singleSelect:true,
+                toolbar : '#manager_tool',
+                columns : [[
+                    {
+                        field : 'id',
+                        width : 100,
+                        hidden : true
+                    },
+                    {
+                        field : 'menuName',
+                        title : '菜单名',
+                        width : 100,
+                    },
+                    {
+                        field : 'iconCls',
+                        title : '图标',
+                        width : 100,
+                    },
+                    {
+                        field : 'menuState',
+                        title : '状态',
+                        width : 100,
+                        formatter: function(value,row,index){
+                            if (value == 0){
+                                return "正常";
+                            } else {
+                                return "冻结";
+                            }
+                        }
+                    },
+                    {
+                        field : 'sort',
+                        title : '排序',
+                        width : 100,
+                    },
+                    {
+                        field : 'createDate',
+                        title : '创建日期',
+                        width : 100,
+                    }
+                ]]
+            });
+        }
+        function dataGridPageInit() {
+            var p = $('#manager').datagrid('getPager');
+            $(p).pagination({
+                pageNumber : 1,
+                pageSize : 10,
+                pageList : [10, 20, 30, 40, 50],
+                onSelectPage:function(pageNumber, pageSize){
+                    var params = {"page":pageNumber, "rows":pageSize};
+                    var result = ajaxSynchPostJson("user/menuManage/searchRoot", params);
+                    if (result.code == '200') {
+                        $('#manager').datagrid('loadData', result.data);
+                    }
+                },
+            });
+        }
+        function addMenuChildShow() {
+            $('#manager_listChild_add').dialog('open');
+            $('#menuNameChildAdd').focus();
+        }
+        function addMenuChildCommit() {
+            var rows = $('#manager').datagrid('getSelections');
+            if (rows.length > 0) {
+                if ($('#manager_listChild_add').form('validate')) {
+                    var menuName = $('#menuNameChildAdd').val();
+                    var iconCls = $('#menuIconChildAdd').val();
+                    var menuState = $("input[name='menuStateChildAdd']:checked").val();
+                    var sort = $('#menuSortChildAdd').val();
+                    var dirLevel = 2;
+                    var parentId = rows[0].id;
+                    var url = $('#menuUrlChildAdd').val();
+                    var id = null;
+                    var manager = '#manager_listChild_add';
+                    var isParent = 0;
+                    save(menuName, iconCls, menuState, sort, dirLevel, parentId, url, id, manager, isParent);
+                }
+            }
+        }
+        function editMenuChildShow() {
+            var rows = $('#manager_listChild_datagrid').datagrid('getSelections');
+            if (rows.length > 0) {
+                var id = rows[0].id;
+                var result = ajaxSynchGet("user/menuManage/getDetail", {"id": id});
+                if (result.code == '200') {
+                    var menuName = result.data.menuName;
+                    var iconCls = result.data.iconCls;
+                    var url = result.data.url;
+                    var sort = result.data.sort;
+                    var menuState = result.data.menuState;
+                    $('#menuNameChildEdit').val(menuName);
+                    $('#menuIconChildEdit').val(iconCls);
+                    $('#menuUrlChildEdit').val(url);
+                    $('#menuSortChildEdit').numberbox('setValue', sort);
+                    $("input:radio[name=menuStateChildEdit][value=" + menuState + "]").prop("checked",true);
+                    $('#manager_listChild_edit').dialog('open');
+                } else {
+                    alertWarn(result.msg);
+                }
+            } else {
+                alertWarn("请先选择记录！");
+            }
+        }
+        function editMenuChildCommit() {
+            if ($('#manager_listChild_edit').form('validate')) {
+                var rows = $('#manager_listChild_datagrid').datagrid('getSelections');
+                if (rows.length > 0) {
+                    var menuName = $('#menuNameChildEdit').val();
+                    var iconCls = $('#menuIconChildEdit').val();
+                    var menuState = $("input[name='menuStateChildEdit']:checked").val();
+                    var sort = $('#menuSortChildEdit').val();
+                    var dirLevel = 2;
+                    var url = $('#menuUrlChildEdit').val();
+                    var id = rows[0].id;
+                    var manager = '#manager_listChild_edit';
+                    var isParent = 0;
+                    save(menuName, iconCls, menuState, sort, dirLevel, null, url, id, manager, isParent);
+                }
+            }
+        }
+
+        function keyDownInit() {
+            document.onkeydown = function doKeyDown() {
+                if (event.keyCode == 13) {
+                    return false;
+                }
+            }
+        }
+
+        $(function () {
+            keyDownInit();
+            dataGridInit();
+            searchMenu();
+        });
+    </script>
+</head>
+<body>
+<table id="manager">
+    <div id="manager_tool">
+        <div style="margin-bottom:5px;">
+            <a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="addMenuParentShow()"><font size="2">新增</font></a>
+            <a href="#" class="easyui-linkbutton" iconCls="icon-edit-yellow" plain="true" onclick="editMenuParentShow()"><font size="2">编辑</font></a>
+            <a href="#" class="easyui-linkbutton" iconCls="icon-tip" plain="true" onclick="listChild()"><font size="2">查看二级菜单</font></a>
+        </div>
+    </div>
+</table>
+
+<form id="manager_add" class="easyui-dialog" style="margin:0;padding:5px 0 0 25px;color:#333;"
+      data-options="top:150,width:320,title:'新增管理',modal:true,closed:true,cache:false,iconCls:'icon-add',
+       onClose:function () {
+            $('#manager_add').form('reset');
+       },
+		buttons:[{
+					text : '提交',
+					iconCls : 'icon-add-green',
+					handler : function () {
+                    addMenuParentCommit();
+					}
+				},{
+					text:'关闭',
+					iconCls : 'icon-redo',
+					handler:function(){
+                    $('#manager_add').dialog('close');
+					}
+				}]">
+    <p>菜单名：<input id="menuNameParentAdd" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入菜单名',invalidMessage:'菜单名长度至少为1位'" type="text" style="width:200px;" /></p>
+    <p>图&nbsp;&nbsp;&nbsp;标：<input id="menuIconParentAdd" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入图标',invalidMessage:'图标长度至少为1位'" type="text" style="width:200px;" /></p>
+    <p>状&nbsp;&nbsp;&nbsp;态：<input name="menuStateParentAdd" type="radio" value="0" checked="checked">正常</input><input name="menuStateParentAdd" type="radio" value="1">冻结</input></p>
+    <p>排&nbsp;&nbsp;&nbsp;序：<input id="menuSortParentAdd" class="easyui-numberbox" data-options="required:true,min:0,precision:0,validType:'length[1,100]',missingMessage:'请输入排序',invalidMessage:'菜单名长度至少为1位'" type="text" style="width:200px;" /></p>
+</form>
+
+<form id="manager_edit" class="easyui-dialog" style="margin:0;padding:5px 0 0 25px;color:#333;"
+      data-options="top:150,width:320,title:'编辑管理',modal:true,closed:true,cache:false,iconCls:'icon-edit-yellow',
+       onClose:function () {
+            $('#manager_edit').form('reset');
+       },
+		buttons:[{
+					text : '提交',
+					iconCls : 'icon-add-green',
+					handler : function () {
+                    editMenuParentCommit();
+					}
+				},{
+					text:'关闭',
+					iconCls : 'icon-redo',
+					handler:function(){
+                    $('#manager_edit').dialog('close');
+					}
+				}]">
+    <p>菜单名：<input id="menuNameParentEdit" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入菜单名',invalidMessage:'菜单名长度至少为1位'" type="text" style="width:200px;" /></p>
+    <p>图&nbsp;&nbsp;&nbsp;标：<input id="menuIconParentEdit" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入图标',invalidMessage:'图标长度至少为1位'" type="text" style="width:200px;" /></p>
+    <p>状&nbsp;&nbsp;&nbsp;态：<input name="menuStateParentEdit" type="radio" value="0">正常</input><input name="menuStateParentEdit" type="radio" value="1">冻结</input></p>
+    <p>排&nbsp;&nbsp;&nbsp;序：<input id="menuSortParentEdit" class="easyui-numberbox" data-options="required:true,min:0,precision:0,validType:'length[1,100]',missingMessage:'请输入排序',invalidMessage:'菜单名长度至少为1位'" type="text" style="width:200px;" /></p>
+</form>
+
+<div id="manager_listChild" class="easyui-window" style="background-color:#F4F4F4;" data-options="top:150,width:1100,title:'查看',modal:true,closed:true,iconCls:'icon-tip',cache:false,collapsible:false,minimizable:false,maximizable:false,toolbar:'manager_listChild_tool'">
+    <div id="manager_listChild_tool">
+        <div style="margin-bottom:5px;">
+            <a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="addMenuChildShow()">新增</a>
+            <a href="#" class="easyui-linkbutton" iconCls="icon-edit-yellow" plain="true" onclick="editMenuChildShow()">编辑</a>
+        </div>
+    </div>
+    <table id="manager_listChild_datagrid" class="easyui-datagrid" data-options="fit:false,fitColumns:true,striped:true,rownumbers:true,border:false,singleSelect:true,pagination:false">
+        <thead>
+        <tr>
+            <th data-options="field:'id',hidden:true" />
+            <th data-options="field:'menuName',width:80">菜单名</th>
+            <th data-options="field:'iconCls',width:50">菜单图标</th>
+            <th data-options="field:'url',width:100">跳转链接</th>
+            <th data-options="field:'menuState',width:50,
+                formatter: function(value,row,index){
+                    if (value == 0){
+                        return '正常';
+                    } else {
+                        return '冻结';
+                    }
+                }">状态</th>
+            <th data-options="field:'sort',width:50">排序</th>
+            <th data-options="field:'createDate',width:100">创建时间</th>
+        </tr>
+        </thead>
+    </table>
+    <form id="manager_listChild_add" class="easyui-dialog" style="margin:0;padding:5px 0 0 25px;color:#333;"
+          data-options="top:150,width:320,title:'新增管理',modal:true,closed:true,cache:false,iconCls:'icon-add',
+       onClose:function () {
+            $('#manager_listChild_add').form('reset');
+       },
+		buttons:[{
+					text : '提交',
+					iconCls : 'icon-add-green',
+					handler : function () {
+                    addMenuChildCommit();
+					}
+				},{
+					text:'关闭',
+					iconCls : 'icon-redo',
+					handler:function(){
+                    $('#manager_listChild_add').dialog('close');
+					}
+				}]">
+        <p>菜单名：<input id="menuNameChildAdd" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入菜单名',invalidMessage:'菜单名长度至少为1位'" type="text" style="width:200px;" /></p>
+        <p>图&nbsp;&nbsp;&nbsp;标：<input id="menuIconChildAdd" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入图标',invalidMessage:'图标长度至少为1位'" type="text" style="width:200px;" /></p>
+        <p>链&nbsp;&nbsp;&nbsp;接：<input id="menuUrlChildAdd" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入跳转链接',invalidMessage:'跳转链接长度至少为1位'" type="text" style="width:200px;" /></p>
+        <p>状&nbsp;&nbsp;&nbsp;态：<input name="menuStateChildAdd" type="radio" value="0" checked="checked">正常</input><input name="menuStateParentAdd" type="radio" value="1">冻结</input></p>
+        <p>排&nbsp;&nbsp;&nbsp;序：<input id="menuSortChildAdd" class="easyui-numberbox" data-options="required:true,min:0,precision:0,validType:'length[1,100]',missingMessage:'请输入排序',invalidMessage:'菜单名长度至少为1位'" type="text" style="width:200px;" /></p>
+    </form>
+    <form id="manager_listChild_edit" class="easyui-dialog" style="margin:0;padding:5px 0 0 25px;color:#333;"
+          data-options="top:150,width:320,title:'编辑管理',modal:true,closed:true,cache:false,iconCls:'icon-edit-yellow',
+       onClose:function () {
+            $('#manager_listChild_edit').form('reset');
+       },
+		buttons:[{
+					text : '提交',
+					iconCls : 'icon-add-green',
+					handler : function () {
+                    editMenuChildCommit();
+					}
+				},{
+					text:'关闭',
+					iconCls : 'icon-redo',
+					handler:function(){
+                    $('#manager_listChild_edit').dialog('close');
+					}
+				}]">
+        <p>菜单名：<input id="menuNameChildEdit" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入菜单名',invalidMessage:'菜单名长度至少为1位'" type="text" style="width:200px;" /></p>
+        <p>图&nbsp;&nbsp;&nbsp;标：<input id="menuIconChildEdit" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入图标',invalidMessage:'图标长度至少为1位'" type="text" style="width:200px;" /></p>
+        <p>链&nbsp;&nbsp;&nbsp;接：<input id="menuUrlChildEdit" class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入跳转链接',invalidMessage:'跳转链接长度至少为1位'" type="text" style="width:200px;" /></p>
+        <p>状&nbsp;&nbsp;&nbsp;态：<input name="menuStateChildEdit" type="radio" value="0" checked="checked">正常</input><input name="menuStateChildEdit" type="radio" value="1">冻结</input></p>
+        <p>排&nbsp;&nbsp;&nbsp;序：<input id="menuSortChildEdit" class="easyui-numberbox" data-options="required:true,min:0,precision:0,validType:'length[1,100]',missingMessage:'请输入排序',invalidMessage:'菜单名长度至少为1位'" type="text" style="width:200px;" /></p>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" th:href="@{/static/easyui/themes/easy.common.css}"></link>
+    <script th:inline="javascript">
+        var contextPath = [[@{/}]];
+        var interceptorToken = [[${token}]];
+        var interceptorUserId = [[${userId}]];
+    </script>
+    <script th:src="@{/static/easyui/easy.common.js}"></script>
+    <script th:src="@{/static/easyuiMask.js}"></script>
+    <script th:src="@{/static/myFun.js}"></script>
+    <script th:inline="javascript">
+        function addRoleShow() {
+            $('#manager_add').dialog('open');
+            $('#roleNameAdd').focus();
+        }
+        function editRoleShow() {
+            var rows = $('#manager').datagrid('getSelections');
+            if (rows.length > 0) {
+                var id = rows[0].id;
+                var result = ajaxSynchGet("user/roleManage/getDetail", {"id":id});
+                if (result.code == '200') {
+                    var roleName = result.data.roleName;
+                    var roleRemark = result.data.roleRemark;
+                    $('#roleNameEdit').val(roleName);
+                    $('#roleRemarkEdit').val(roleRemark);
+                    $('#manager_edit').dialog('open');
+                } else {
+                    alertWarn(result.msg);
+                }
+            } else {
+                alertWarn("请先选择记录！");
+            }
+        }
+        function distriRoleMenuShow() {
+            var rows = $('#manager').datagrid('getSelections');
+            if (rows.length > 0) {
+                var id = rows[0].id;
+                var result = ajaxSynchGet("user/roleManage/getMenuTreeByRoleId", {"id":id});
+                if (result.code == '200') {
+                    $('#roleMenuTree').tree({
+                        lines : true,
+                        multiple : true,
+                        checkbox : true,
+                        data : result.data
+                    });
+                    $('#manager_distriRoleMenu').dialog('open');
+                } else {
+                    alertWarn(result.msg);
+                }
+            } else {
+                alertWarn("请先选择记录！");
+            }
+        }
+        function addRoleCommit() {
+            if ($('#manager_add').form('validate')) {
+                var roleName = $('#roleNameAdd').val();
+                var roleRemark = $('#roleRemarkAdd').val();
+                var result = ajaxSynchGet("user/roleManage/add", {"roleName":roleName, "roleRemark":roleRemark});
+                if (result.code == '200') {
+                    alertSuccess();
+                    $('#manager_add').dialog('close');
+                    searchRole();
+                } else {
+                    alertWarn(result.msg);
+                }
+            }
+        }
+        function editRoleCommit() {
+            if ($('#manager_edit').form('validate')) {
+                var rows = $('#manager').datagrid('getSelections');
+                if (rows.length > 0) {
+                    var id = rows[0].id;
+                    var roleName = $('#roleNameEdit').val();
+                    var roleRemark = $('#roleRemarkEdit').val();
+                    var result = ajaxSynchGet("user/roleManage/update", {"id":id, "roleName": roleName, "roleRemark": roleRemark})
+                    if (result.code == '200') {
+                        alertSuccess();
+                        $('#manager_edit').dialog('close');
+                        searchRole();
+                    } else {
+                        alertWarn(result.msg);
+                    }
+                }
+            }
+        }
+        function distriRoleMenuCommit() {
+            var rows = $('#manager').datagrid('getSelections');
+            if (rows.length > 0) {
+                var roleGroupId = rows[0].id;
+                var nodeArr = $('#roleMenuTree').tree('getChecked', ['indeterminate', 'checked']);
+                var idArr =  [];
+                nodeArr.forEach(function(value, index, array){
+                    idArr.push(value.id);
+                });
+                var result = ajaxSynchPostJson("user/roleManage/menuSave", {"roleGroupId":roleGroupId, "menuIds":idArr});
+                if (result.code == '200') {
+                    $('#manager_distriRoleMenu').dialog('close');
+                }
+                alertInfo(result.msg);
+            }
+        }
+        function opertUserState(state) {
+            var showMsg = '';
+            if (state == 0) {
+                showMsg = '您确定解冻该角色组吗？';
+            } else {
+                showMsg = '您确定冻结该角色组吗？';
+            }
+            var rows = $('#manager').datagrid('getSelections');
+            if (rows.length > 0) {
+                $.messager.confirm('确定操作', showMsg, function (flag) {
+                    if (flag) {
+                        var id = rows[0].id;
+                        $('#manager').datagrid('loading');
+                        var result = ajaxSynchGet("user/roleManage/opert", {"id": id, "state": state});
+                        $('#manager').datagrid('loaded');
+                        searchRole();
+                        alertInfo(result.msg);
+                    }
+                });
+            } else {
+                alertWarn("请先选择记录！");
+            }
+        }
+        function dataGridInit() {
+            $('#manager').datagrid({
+                fit : true,
+                fitColumns : true,
+                striped : true,
+                rownumbers : true,
+                border : false,
+                pagination : false,
+                singleSelect:true,
+                toolbar : '#manager_tool',
+                columns : [[
+                    {
+                        field : 'id',
+                        width : 100,
+                        hidden : true
+                    },
+                    {
+                        field : 'roleName',
+                        title : '角色名',
+                        width : 100,
+                    },
+                    {
+                        field : 'roleRemark',
+                        title : '角色备注',
+                        width : 100,
+                    },
+                    {
+                        field : 'roleState',
+                        title : '状态',
+                        width : 100,
+                        formatter: function(value,row,index){
+                            if (value == 0){
+                                return "正常";
+                            } else {
+                                return "冻结";
+                            }
+                        }
+                    },
+                    {
+                        field : 'createDate',
+                        title : '创建日期',
+                        width : 100,
+                    }
+                ]]
+            });
+        }
+        function searchRole() {
+            var result = ajaxSynchGet("user/roleManage/list", {"roleState": 2});
+            if (result.code == '200') {
+                $('#manager').datagrid('loadData', result.data);
+            }
+        }
+
+        function keyDownInit() {
+            document.onkeydown = function doKeyDown() {
+                if (event.keyCode == 13) {
+                    return false;
+                }
+            }
+        }
+
+        $(function () {
+            keyDownInit()
+            dataGridInit();
+            searchRole();
+        });
+    </script>
+</head>
+<body>
+<table id="manager">
+    <div id="manager_tool">
+        <div style="margin-bottom:5px;">
+            <a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="addRoleShow()"><font size="2">新增</font></a>
+            <a href="#" class="easyui-linkbutton" iconCls="icon-edit-yellow" plain="true" onclick="editRoleShow()"><font size="2">编辑</font></a>
+            <a href="#" class="easyui-linkbutton" iconCls="icon-add-green" plain="true" onclick="distriRoleMenuShow()"><font size="2">分配菜单</font></a>
+            <a href="#" class="easyui-linkbutton" iconCls="icon-tip" plain="true" onclick="opertUserState(1)"><font size="2">禁用</font></a>
+            <a href="#" class="easyui-linkbutton" iconCls="icon-ok" plain="true" onclick="opertUserState(0)"><font size="2">启用</font></a>
+        </div>
+
+        <!--/*
+        <div style="padding:0 0 0 7px;color:#333;">
+            角色名：<input type="text" class="textbox" id="unameSearch" style="width:110px" />
+            <a href="#" class="easyui-linkbutton" iconCls="icon-search" onclick="searchRole()">查询</a>
+        </div>
+        */-->
+    </div>
+</table>
+
+<form id="manager_add" class="easyui-dialog" style="margin:0;padding:5px 0 0 25px;color:#333;"
+      data-options="top:150,width:320,title:'新增管理',modal:true,closed:true,cache:false,iconCls:'icon-add',
+       onClose:function () {
+            $('#manager_add').form('reset');
+       },
+		buttons:[{
+					text : '提交',
+					iconCls : 'icon-add-green',
+					handler : function () {
+                    addRoleCommit();
+					}
+				},{
+					text:'关闭',
+					iconCls : 'icon-redo',
+					handler:function(){
+                    $('#manager_add').dialog('close');
+					}
+				}]">
+    <p>角色名：<input class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入角色名',invalidMessage:'角色名长度至少为1位'," type="text" id="roleNameAdd" style="width:200px;" /></p>
+    <p>备&nbsp;&nbsp;&nbsp;注：<input class="easyui-validatebox" type="text" id="roleRemarkAdd" style="width:200px; border: 1px solid #95B8E7" /></p>
+</form>
+
+<form id="manager_edit" class="easyui-dialog" style="margin:0;padding:5px 0 0 25px;color:#333;"
+      data-options="top:150,width:320,title:'编辑管理',modal:true,closed:true,cache:false,iconCls:'icon-edit-yellow',
+       onClose:function () {
+            $('#manager_edit').form('reset');
+       },
+		buttons:[{
+					text : '提交',
+					iconCls : 'icon-add-green',
+					handler : function () {
+                    editRoleCommit();
+					}
+				},{
+					text:'关闭',
+					iconCls : 'icon-redo',
+					handler:function(){
+                    $('#manager_edit').dialog('close');
+					}
+				}]">
+    <p>角色名：<input class="easyui-validatebox" data-options="required:true,validType:'length[1,100]',missingMessage:'请输入角色名',invalidMessage:'角色名长度至少为1位'," type="text" id="roleNameEdit" style="width:200px;" /></p>
+    <p>备&nbsp;&nbsp;&nbsp;注：<input class="easyui-validatebox" type="text" id="roleRemarkEdit" style="width:200px;" /></p>
+</form>
+
+<form id="manager_distriRoleMenu" class="easyui-dialog" style="margin:0;padding:5px 0 0 25px;color:#333;"
+      data-options="top:150,width:320,title:'分配菜单',modal:true,closed:true,cache:false,iconCls:'icon-add-green',
+       onClose:function () {
+            $('#manager_distriRoleMenu').form('reset');
+       },
+		buttons:[{
+					text : '提交',
+					iconCls : 'icon-add-green',
+					handler : function () {
+                    distriRoleMenuCommit();
+					}
+				},{
+					text:'关闭',
+					iconCls : 'icon-redo',
+					handler:function(){
+                    $('#manager_distriRoleMenu').dialog('close');
+					}
+				}]">
+    <ul id="roleMenuTree"/>
+</form>
+</body>
+</html>
